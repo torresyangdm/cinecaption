@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000000">
+<title>CineCaption</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --black:#000;--void:#080808;--bg:#0e0e0e;--surface:#161616;--lift:#1f1f1f;
+  --border:#272727;--muted:#3a3a3a;--dim:#666;--silver:#aaa;--white:#f0f0f0;
+  --amber:#f5a623;--amber2:#e8911a;--green:#3dd68c;--red:#ff5252;--orange:#ff9800;--blue:#5b8dee;
+  --r:14px;--r-sm:9px;--r-xs:6px;
+}
+html,body{height:100%;background:var(--black);color:var(--white);font-family:'Noto Sans SC',-apple-system,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none;}
+.screen{display:none;flex-direction:column;min-height:100dvh;}
+.screen.active{display:flex;}
+
+/* ─── LIBRARY ─── */
+#library{background:var(--black);}
+.lib-topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 16px;background:linear-gradient(to bottom,rgba(245,166,35,0.05),transparent);}
+.lib-logo{display:flex;align-items:center;gap:10px;}
+.lib-logo-mark{width:34px;height:34px;background:linear-gradient(135deg,var(--amber),var(--amber2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 16px rgba(245,166,35,0.2);}
+.lib-title{font-family:'Bebas Neue';font-size:26px;letter-spacing:2px;}
+.lib-sub{font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;line-height:1;margin-top:2px;}
+.add-btn{width:40px;height:40px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--amber);cursor:pointer;transition:background 0.15s;flex-shrink:0;}
+.add-btn:active{background:var(--lift);}
+.lib-search-wrap{padding:0 16px 12px;}
+.lib-search{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--white);font-family:'Noto Sans SC';font-size:14px;outline:none;-webkit-user-select:text;user-select:text;}
+.lib-search::placeholder{color:var(--dim);}
+.lib-list{flex:1;overflow-y:auto;padding:0 16px 100px;}
+.lib-list::-webkit-scrollbar{display:none;}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 40px;gap:14px;text-align:center;}
+.empty-icon{font-size:54px;opacity:0.18;}
+.empty-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;color:var(--dim);}
+.empty-hint{font-size:13px;color:var(--muted);line-height:1.7;}
+.empty-hint b{color:var(--amber);}
+.movie-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;}
+.card-main{display:flex;align-items:center;gap:14px;padding:16px;cursor:pointer;transition:background 0.12s;}
+.card-main:active{background:var(--lift);}
+.card-poster{width:52px;height:52px;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--lift),var(--muted));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.card-poster-letter{font-family:'Bebas Neue';font-size:28px;color:var(--white);opacity:0.7;}
+.card-info{flex:1;min-width:0;}
+.card-title{font-size:16px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
+.card-pills{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{font-family:'JetBrains Mono';font-size:9px;padding:2px 7px;border-radius:4px;font-weight:500;letter-spacing:0.5px;}
+.pill-en{background:rgba(91,141,238,0.15);color:var(--blue);border:1px solid rgba(91,141,238,0.2);}
+.pill-cn{background:rgba(255,82,82,0.12);color:var(--red);border:1px solid rgba(255,82,82,0.2);}
+.pill-ok{background:rgba(61,214,140,0.12);color:var(--green);border:1px solid rgba(61,214,140,0.2);}
+.pill-missing{background:rgba(102,102,102,0.1);color:var(--dim);border:1px solid rgba(102,102,102,0.15);}
+.card-sub-count{font-size:11px;color:var(--dim);margin-top:4px;}
+.card-play-btn{width:40px;height:40px;background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.card-play-btn.incomplete{background:var(--lift);border-color:var(--border);opacity:0.35;}
+.card-actions{display:flex;border-top:1px solid var(--border);}
+.card-action-btn{flex:1;padding:11px;text-align:center;font-size:12px;cursor:pointer;color:var(--dim);transition:background 0.12s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.card-action-btn:active{background:var(--lift);}
+.card-action-del{color:var(--red);}
+.card-action-del:active{background:rgba(255,82,82,0.08);}
+.card-action-edit{border-right:1px solid var(--border);}
+
+/* ─── ADD/EDIT ─── */
+#addmovie{background:var(--bg);}
+.form-topbar{display:flex;align-items:center;gap:14px;padding:52px 20px 20px;border-bottom:1px solid var(--border);}
+.back-btn{width:36px;height:36px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;flex-shrink:0;}
+.back-btn:active{background:var(--lift);}
+.form-topbar-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;}
+.form-body{flex:1;overflow-y:auto;padding:24px 20px 40px;}
+.form-body::-webkit-scrollbar{display:none;}
+.form-group{margin-bottom:22px;}
+.form-label{font-size:11px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:block;font-family:'JetBrains Mono';font-weight:500;}
+.form-label span{color:var(--amber);}
+.form-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;color:var(--white);font-family:'Noto Sans SC';font-size:15px;outline:none;-webkit-user-select:text;user-select:text;transition:border-color 0.2s;}
+.form-input:focus{border-color:var(--amber);}
+.form-input::placeholder{color:var(--muted);}
+.file-pick{background:var(--surface);border:1px dashed var(--border);border-radius:var(--r-sm);overflow:hidden;}
+.file-pick.has-file{border-style:solid;border-color:var(--green);}
+.file-pick-trigger{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;}
+.file-pick-trigger:active{background:var(--lift);}
+.file-pick-icon{width:40px;height:40px;border-radius:var(--r-xs);background:var(--lift);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;transition:background 0.2s;}
+.file-pick.has-file .file-pick-icon{background:rgba(61,214,140,0.12);}
+.file-pick-info{flex:1;min-width:0;}
+.file-pick-name{font-size:14px;color:var(--dim);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color 0.2s;}
+.file-pick.has-file .file-pick-name{color:var(--white);font-style:normal;}
+.file-pick-meta{font-size:11px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono';}
+.file-pick-check{font-size:18px;color:var(--green);opacity:0;transition:opacity 0.2s;}
+.file-pick.has-file .file-pick-check{opacity:1;}
+input[type=file]{display:none;}
+.form-hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.6;padding:0 2px;}
+.form-hint b{color:var(--silver);}
+.save-btn{width:100%;padding:17px;background:linear-gradient(135deg,var(--amber),var(--amber2));border:none;border-radius:var(--r);font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:var(--black);cursor:pointer;opacity:0.3;transition:opacity 0.25s,box-shadow 0.25s,transform 0.1s;margin-top:8px;}
+.save-btn.ready{opacity:1;box-shadow:0 4px 24px rgba(245,166,35,0.3);}
+.save-btn.ready:active{transform:scale(0.98);}
+
+/* ─── PLAYER ─── */
+#player{background:var(--black);}
+.pbar{display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);background:rgba(8,8,8,0.96);backdrop-filter:blur(10px);gap:8px;flex-shrink:0;}
+.sync-pill{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);transition:all 0.3s;}
+.sync-pill.synced{background:rgba(61,214,140,0.1);border-color:rgba(61,214,140,0.3);}
+.sync-pill.syncing{background:rgba(255,152,0,0.1);border-color:rgba(255,152,0,0.3);}
+.sync-pill.lost{background:rgba(255,82,82,0.1);border-color:rgba(255,82,82,0.3);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.sync-pill.synced .sync-dot{background:var(--green);animation:blink 2.5s infinite;}
+.sync-pill.syncing .sync-dot{background:var(--orange);animation:blink 0.8s infinite;}
+.sync-pill.lost .sync-dot{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.sync-label{font-size:11px;color:var(--silver);font-weight:500;}
+.conf-badge{font-family:'JetBrains Mono';font-size:10px;color:var(--muted);padding:3px 8px;background:var(--surface);border-radius:5px;transition:color 0.3s;cursor:pointer;}
+.conf-badge.high{color:var(--green);}
+.conf-badge.medium{color:var(--orange);}
+.spacer{flex:1;}
+.movie-clock{font-family:'JetBrains Mono';font-size:13px;color:var(--amber);letter-spacing:1px;}
+
+/* subtitle stage */
+.subtitle-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 20px 8px;position:relative;}
+.cn-display{text-align:center;width:100%;}
+.cn-sub-text{font-family:'Noto Sans SC';font-size:30px;font-weight:700;color:var(--white);line-height:1.4;text-align:center;min-height:48px;padding:0 4px;text-shadow:0 2px 20px rgba(0,0,0,1),0 0 40px rgba(0,0,0,0.9);}
+.cn-sub-text.blank{visibility:hidden;}
+.cn-accent-line{width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--amber),transparent);margin:10px auto;}
+.cn-accent-line.hidden{visibility:hidden;}
+.en-sub-text{font-size:15px;font-weight:300;color:rgba(255,255,255,0.5);text-align:center;min-height:22px;line-height:1.5;font-style:italic;margin-top:6px;}
+.en-sub-text.blank{visibility:hidden;}
+
+/* fullscreen button */
+.fs-btn{position:absolute;bottom:12px;right:14px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;}
+.fs-btn:active{background:rgba(255,255,255,0.18);}
+
+/* ─── FULLSCREEN MODE ─── */
+/* pbar/stt/log hidden; controls-panel stays */
+#player.fs-mode .pbar,
+#player.fs-mode .stt-row,
+#player.fs-mode .log-row{display:none!important;}
+#player.fs-mode .subtitle-stage{flex:1;padding:20px 16px 12px;}
+/* single-line enforced via JS font scaling */
+#player.fs-mode .cn-sub-text{white-space:nowrap;overflow:visible;}
+#player.fs-mode .en-sub-text{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* lock button — top-right, only shown in fullscreen */
+.lock-btn{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;background:rgba(20,20,20,0.85);border:1px solid var(--border);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;font-size:18px;backdrop-filter:blur(6px);}
+.lock-btn.show{display:flex;}
+/* hide second ctrl-row (手动定位 row) in fullscreen */
+#player.fs-mode .ctrl-row:last-child{display:none!important;}
+#player.fs-mode.locked .controls-panel{display:none!important;}
+#player.fs-mode.locked .subtitle-stage{padding:40px 16px;}
+
+/* STT / match info row */
+.stt-row{display:flex;align-items:center;gap:8px;padding:5px 14px;background:var(--void);border-top:1px solid var(--border);border-bottom:1px solid var(--border);min-height:32px;flex-shrink:0;}
+.stt-mic{font-size:13px;flex-shrink:0;transition:filter 0.3s;}
+.stt-mic.active{filter:drop-shadow(0 0 5px var(--green));}
+.stt-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.stt-line1{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono';font-style:italic;transition:color 0.2s;}
+.stt-line1.live{color:var(--silver);}
+.stt-line1.success{color:var(--green);}
+.stt-line1.fail{color:var(--orange);}
+.stt-line2{font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono';}
+.stt-line2.progress{color:var(--amber);}
+.stt-line2.match-ok{color:var(--green);}
+.stt-line2.match-fail{color:var(--red);}
+/* log trigger row */
+.log-row{display:flex;align-items:center;gap:8px;padding:4px 14px;background:var(--void);border-bottom:1px solid var(--border);min-height:26px;flex-shrink:0;cursor:pointer;}
+.log-row:active{background:var(--surface);}
+.log-label{font-size:9px;color:var(--dim);font-family:'JetBrains Mono';letter-spacing:1px;flex-shrink:0;}
+.log-preview{font-size:10px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono';}
+.log-preview.ok{color:var(--green);}
+.log-preview.pending{color:var(--orange);}
+/* btn-listening = amber lit state for match button */
+.btn-listening{background:rgba(245,166,35,0.18);border-color:var(--amber);color:var(--amber);font-weight:700;}
+.btn-listening .stt-mic-inline{animation:blink 0.8s infinite;}
+/* ─── LOG PANEL ─── */
+#log-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.94);display:none;flex-direction:column;z-index:200;}
+#log-overlay.show{display:flex;}
+.log-header{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.log-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;}
+.log-close{width:36px;height:36px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;flex-shrink:0;}
+.log-close:active{background:var(--lift);}
+.log-hint{padding:8px 20px;font-size:11px;color:var(--dim);border-bottom:1px solid var(--border);flex-shrink:0;font-family:'JetBrains Mono';}
+.log-list{flex:1;overflow-y:auto;padding:8px 0;}
+.log-list::-webkit-scrollbar{display:none;}
+.log-item{padding:10px 20px;border-bottom:1px solid rgba(39,39,39,0.5);}
+.log-item-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.log-item-num{font-family:'JetBrains Mono';font-size:10px;color:var(--dim);flex-shrink:0;min-width:32px;}
+.log-item-result{font-size:10px;font-weight:700;font-family:'JetBrains Mono';}
+.log-item-result.ok{color:var(--green);}
+.log-item-result.fail{color:var(--red);}
+.log-item-time{font-family:'JetBrains Mono';font-size:10px;color:var(--dim);margin-left:auto;}
+.log-item-detail{font-size:11px;color:var(--muted);font-family:'JetBrains Mono';line-height:1.6;}
+.log-item-detail b{color:var(--silver);}
+.log-item-detail .score-ok{color:var(--green);}
+.log-item-detail .score-fail{color:var(--orange);}
+.log-empty{padding:40px;text-align:center;color:var(--dim);font-size:13px;}
+
+/* controls */
+.controls-panel{background:rgba(8,8,8,0.98);border-top:1px solid var(--border);padding:8px 12px calc(8px + env(safe-area-inset-bottom));flex-shrink:0;}
+.offset-readout{text-align:center;font-family:'JetBrains Mono';font-size:11px;color:var(--dim);margin-bottom:7px;}
+.offset-readout b{color:var(--amber);}
+.ctrl-row{display:flex;gap:6px;margin-bottom:6px;}
+.ctrl-row:last-child{margin-bottom:0;}
+.btn{flex:1;padding:11px 4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--silver);font-size:13px;font-family:'Noto Sans SC';cursor:pointer;text-align:center;transition:background 0.12s;line-height:1.2;}
+.btn:active{background:var(--lift);}
+.btn-amber{background:rgba(245,166,35,0.1);border-color:rgba(245,166,35,0.35);color:var(--amber);font-weight:600;}
+.btn-amber:active{background:rgba(245,166,35,0.2);}
+.btn-red{background:rgba(255,82,82,0.08);border-color:rgba(255,82,82,0.25);color:var(--red);}
+.btn-red:active{background:rgba(255,82,82,0.15);}
+.btn-blue{background:rgba(91,141,238,0.1);border-color:rgba(91,141,238,0.3);color:var(--blue);}
+.btn-blue:active{background:rgba(91,141,238,0.2);}
+.btn-icon{font-size:13px;display:block;margin-bottom:1px;}
+.btn-label{font-size:9px;opacity:0.65;display:block;}
+.font-s .cn-sub-text{font-size:22px;}
+.font-m .cn-sub-text{font-size:30px;}
+.font-l .cn-sub-text{font-size:38px;}
+.font-xl .cn-sub-text{font-size:46px;}
+
+/* ─── OVERLAYS ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px);}
+.overlay.show{display:flex;}
+.overlay-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 26px;text-align:center;width:min(310px,90vw);box-shadow:0 24px 80px rgba(0,0,0,0.8);}
+.overlay-anim{font-size:42px;margin-bottom:14px;display:block;animation:float 2s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.overlay-title{font-family:'Bebas Neue';font-size:24px;letter-spacing:2px;margin-bottom:8px;}
+.overlay-desc{font-size:13px;color:var(--dim);line-height:1.7;margin-bottom:18px;}
+.overlay-desc b{color:var(--silver);}
+.overlay-wave{display:flex;align-items:flex-end;justify-content:center;gap:4px;height:28px;margin-bottom:18px;}
+.wave-bar{width:4px;background:var(--amber);border-radius:2px;animation:wave 1.2s ease-in-out infinite;}
+.wave-bar:nth-child(1){animation-delay:0s;height:60%}.wave-bar:nth-child(2){animation-delay:.15s;height:100%}
+.wave-bar:nth-child(3){animation-delay:.3s;height:40%}.wave-bar:nth-child(4){animation-delay:.45s;height:80%}
+.wave-bar:nth-child(5){animation-delay:.6s;height:55%}.wave-bar:nth-child(6){animation-delay:.75s;height:100%}
+.wave-bar:nth-child(7){animation-delay:.9s;height:45%}
+@keyframes wave{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}
+.overlay-cancel{background:var(--lift);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--silver);padding:10px 20px;font-size:14px;cursor:pointer;font-family:'Noto Sans SC';}
+.overlay-cancel:active{background:var(--muted);}
+
+/* ─── MANUAL SYNC PANEL ─── */
+#manual-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.94);display:none;flex-direction:column;z-index:200;}
+#manual-overlay.show{display:flex;}
+.manual-header{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.manual-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;}
+.manual-close{width:36px;height:36px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;flex-shrink:0;}
+.manual-close:active{background:var(--lift);}
+.manual-hint{padding:10px 20px;font-size:12px;color:var(--dim);line-height:1.6;border-bottom:1px solid var(--border);flex-shrink:0;}
+.manual-hint b{color:var(--amber);}
+.manual-search{padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.manual-search input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 13px;color:var(--white);font-size:13px;outline:none;-webkit-user-select:text;user-select:text;font-family:'Noto Sans SC';}
+.manual-search input::placeholder{color:var(--dim);}
+.manual-list{flex:1;overflow-y:auto;padding:8px 0;}
+.manual-list::-webkit-scrollbar{display:none;}
+.manual-item{display:flex;align-items:flex-start;gap:12px;padding:12px 20px;cursor:pointer;transition:background 0.1s;border-bottom:1px solid rgba(39,39,39,0.5);}
+.manual-item:active{background:var(--surface);}
+.manual-item.highlighted{background:rgba(245,166,35,0.08);border-left:2px solid var(--amber);}
+.manual-item-time{font-family:'JetBrains Mono';font-size:10px;color:var(--dim);flex-shrink:0;margin-top:2px;min-width:52px;}
+.manual-item-en{font-size:13px;color:var(--silver);line-height:1.5;flex:1;}
+.manual-item-cn{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.4;}
+
+/* confirm */
+#confirm-overlay .overlay-card{padding:26px 22px;}
+.confirm-btns{display:flex;gap:10px;margin-top:18px;}
+.confirm-btns button{flex:1;padding:12px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:'Noto Sans SC';font-size:14px;cursor:pointer;transition:background 0.12s;}
+.confirm-cancel{background:var(--lift);color:var(--silver);}
+.confirm-cancel:active{background:var(--muted);}
+.confirm-ok{background:rgba(255,82,82,0.12);border-color:rgba(255,82,82,0.3);color:var(--red);}
+.confirm-ok:active{background:rgba(255,82,82,0.2);}
+
+.sync-flash{position:fixed;inset:0;background:rgba(61,214,140,0.07);pointer-events:none;z-index:190;opacity:0;transition:opacity 0.1s;}
+.sync-flash.show{opacity:1;}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--lift);border:1px solid var(--border);border-radius:24px;padding:10px 20px;font-size:13px;color:var(--silver);white-space:nowrap;z-index:300;opacity:0;transition:opacity 0.25s,transform 0.25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: LIBRARY -->
+<div id="library" class="screen active">
+  <div class="lib-topbar">
+    <div class="lib-logo">
+      <div class="lib-logo-mark">🎬</div>
+      <div><div class="lib-title">CineCaption</div><div class="lib-sub">Movie Library</div></div>
+    </div>
+    <div class="add-btn" onclick="goAddMovie()">＋</div>
+  </div>
+  <div class="lib-search-wrap">
+    <input class="lib-search" id="search-input" type="search" placeholder="🔍  搜索电影名..." oninput="renderLibrary()">
+  </div>
+  <div class="lib-list" id="lib-list"></div>
+</div>
+
+<!-- SCREEN 2: ADD/EDIT -->
+<div id="addmovie" class="screen">
+  <div class="form-topbar">
+    <div class="back-btn" onclick="goLibrary()">←</div>
+    <div><div class="form-topbar-title" id="form-title">添加新电影</div></div>
+  </div>
+  <div class="form-body">
+    <div class="form-group">
+      <label class="form-label">电影名称 <span>*</span></label>
+      <input class="form-input" id="movie-title-input" type="text" placeholder="e.g. Project Hail Mary" oninput="checkFormReady()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">英文字幕 EN SRT <span>*</span></label>
+      <div class="file-pick" id="en-pick">
+        <label class="file-pick-trigger" for="en-file-input">
+          <div class="file-pick-icon">🇺🇸</div>
+          <div class="file-pick-info">
+            <div class="file-pick-name" id="en-pick-name">点击选择 .srt 文件</div>
+            <div class="file-pick-meta" id="en-pick-meta">用于声音识别 + 手动定位</div>
+          </div>
+          <div class="file-pick-check">✓</div>
+        </label>
+        <input type="file" id="en-file-input" accept=".srt,.txt">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">中文字幕 CN SRT <span>*</span></label>
+      <div class="file-pick" id="cn-pick">
+        <label class="file-pick-trigger" for="cn-file-input">
+          <div class="file-pick-icon">🇨🇳</div>
+          <div class="file-pick-info">
+            <div class="file-pick-name" id="cn-pick-name">点击选择 .srt 文件</div>
+            <div class="file-pick-meta" id="cn-pick-meta">GBK / UTF-8 自动识别</div>
+          </div>
+          <div class="file-pick-check">✓</div>
+        </label>
+        <input type="file" id="cn-file-input" accept=".srt,.txt">
+      </div>
+      <div class="form-hint">GBK 编码自动转换，<b>无需手动处理</b></div>
+    </div>
+    <button class="save-btn" id="save-btn" disabled onclick="saveMovie()">保存电影</button>
+  </div>
+</div>
+
+<!-- SCREEN 3: PLAYER -->
+<div id="player" class="screen font-m">
+  <div class="pbar">
+    <div class="sync-pill" id="sync-pill">
+      <div class="sync-dot"></div>
+      <div class="sync-label" id="sync-label">未同步</div>
+    </div>
+    <div class="conf-badge" id="conf-badge">——</div>
+    <div class="spacer"></div>
+    <div class="movie-clock" id="movie-clock">--:--:--</div>
+  </div>
+
+  <div class="subtitle-stage">
+    <div class="cn-display">
+      <div class="cn-sub-text blank" id="cn-sub">等待定位...</div>
+      <div class="cn-accent-line hidden" id="accent-line"></div>
+      <div class="en-sub-text blank" id="en-sub">　</div>
+    </div>
+    <div class="fs-btn" onclick="toggleFullscreen()" title="全屏"><span id="fs-btn-icon">⛶</span></div>
+  </div>
+
+  <!-- STT info row -->
+  <div class="stt-row">
+    <span class="stt-mic" id="stt-mic">🎙</span>
+    <div class="stt-body">
+      <div class="stt-line1" id="stt-line1">待机 · 点击「声音匹配」开始</div>
+      <div class="stt-line2" id="stt-line2">——</div>
+    </div>
+  </div>
+  <!-- Log trigger row -->
+  <div class="log-row" onclick="openLogPanel()">
+    <span class="log-label">LOG</span>
+    <div class="log-preview" id="log-preview">暂无记录</div>
+  </div>
+
+  <div class="controls-panel">
+    <div class="offset-readout">偏移 <b id="offset-val">0.0 s</b> · 字号 <b id="font-size-label">中</b></div>
+    <div class="ctrl-row">
+      <div class="btn" onclick="adjustOffset(-1000)"><span class="btn-icon">⏪</span><span class="btn-label">−1s</span></div>
+      <div class="btn" onclick="adjustOffset(-500)"><span class="btn-icon">◀</span><span class="btn-label">−0.5s</span></div>
+      <div class="btn" onclick="adjustOffset(-100)"><span class="btn-icon">◁</span><span class="btn-label">−0.1s</span></div>
+      <div class="btn" onclick="adjustOffset(100)"><span class="btn-icon">▷</span><span class="btn-label">+0.1s</span></div>
+      <div class="btn" onclick="adjustOffset(500)"><span class="btn-icon">▶</span><span class="btn-label">+0.5s</span></div>
+      <div class="btn" onclick="adjustOffset(1000)"><span class="btn-icon">⏩</span><span class="btn-label">+1s</span></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="btn btn-blue" onclick="openManualSync()" style="flex:1.4"><span class="btn-icon">📋</span><span class="btn-label">手动定位</span></div>
+      <div class="btn" id="match-btn" onclick="toggleMatching()" style="flex:1.4"><span class="btn-icon">🎙</span><span class="btn-label">声音匹配</span></div>
+      <div class="btn" onclick="cycleFontSize()"><span class="btn-icon">🔡</span><span class="btn-label">字号</span></div>
+      <div class="btn btn-red" onclick="exitPlayer()"><span class="btn-icon">✕</span><span class="btn-label">退出</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Lock button (fullscreen only) -->
+<div class="lock-btn" id="lock-btn" onclick="toggleLock()">🔓</div>
+
+<!-- MANUAL SYNC PANEL -->
+<div id="manual-overlay">
+  <div class="manual-header">
+    <div>
+      <div class="manual-title">手动定位字幕</div>
+    </div>
+    <div class="manual-close" onclick="closeManualSync()">✕</div>
+  </div>
+  <div class="manual-hint">
+    找到<b>你现在听到的那句台词</b>，点击它即可同步时间轴
+  </div>
+  <div class="manual-search">
+    <input type="search" id="manual-search-input" placeholder="🔍  搜索台词..." oninput="renderManualList()" autocomplete="off">
+  </div>
+  <div class="manual-list" id="manual-list"></div>
+</div>
+
+<!-- LOG PANEL -->
+<div id="log-overlay">
+  <div class="log-header">
+    <div class="log-title">匹配日志</div>
+    <div class="log-close" onclick="closeLogPanel()">✕</div>
+  </div>
+  <div class="log-hint" id="log-hint">共 0 次尝试</div>
+  <div class="log-list" id="log-list"><div class="log-empty">暂无匹配记录</div></div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="overlay" id="confirm-overlay">
+  <div class="overlay-card">
+    <div class="overlay-title">确认删除</div>
+    <div class="overlay-desc" id="confirm-desc">确定要删除这部电影吗？</div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">取消</button>
+      <button class="confirm-ok" id="confirm-ok-btn">删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="sync-flash" id="sync-flash"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const STORE_KEY='cinecaption_v2';
+function loadLib(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch{return[];}}
+function saveLib(l){try{localStorage.setItem(STORE_KEY,JSON.stringify(l));}catch{showToast('⚠️ 存储不足');}}
+let library=loadLib();
+
+// ── SRT ──
+function parseSRT(raw){
+  const text=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const subs=[];
+  for(const block of text.trim().split(/\n{2,}/)){
+    const lines=block.trim().split('\n');
+    let tl=-1;
+    for(let i=0;i<lines.length;i++){if(/-->/.test(lines[i])){tl=i;break;}}
+    if(tl<0)continue;
+    const m=lines[tl].match(/(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})/);
+    if(!m)continue;
+    const s=toMs(m[1],m[2],m[3],m[4]),e=toMs(m[5],m[6],m[7],m[8]);
+    const c=lines.slice(tl+1).join('\n').replace(/<[^>]+>/g,'').replace(/^\s*\[[^\]]*\]\s*$/gm,'').trim();
+    if(c&&e>s)subs.push({id:subs.length,startMs:s,endMs:e,text:c});
+  }
+  return subs;
+}
+function toMs(h,m,s,ms){return(+h*3600+ +m*60+ +s)*1000+ +ms;}
+function msToHMS(ms){if(!isFinite(ms)||ms<0)ms=0;const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);return`${p2(h)}:${p2(m)}:${p2(s)}`;}
+function msToMMSS(ms){if(ms<0)ms=0;const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);return`${p2(m)}:${p2(s)}`;}
+function p2(n){return String(n).padStart(2,'0');}
+
+// ── File reading ──
+function readTxt(f,enc){return new Promise((r,j)=>{const x=new FileReader();x.onload=e=>r(e.target.result);x.onerror=j;x.readAsText(f,enc);});}
+function hasCN(s){return/[\u4e00-\u9fff]/.test(s);}
+async function readSRT(f){let r=await readTxt(f,'GBK');if(!hasCN(r))r=await readTxt(f,'UTF-8');return r;}
+
+// ── Screen nav ──
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ── Library ──
+function goLibrary(){showScreen('library');renderLibrary();}
+function renderLibrary(){
+  const q=(document.getElementById('search-input').value||'').toLowerCase();
+  library=loadLib();
+  const fil=library.filter(m=>m.title.toLowerCase().includes(q));
+  const el=document.getElementById('lib-list');
+  if(!fil.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎬</div><div class="empty-title">${q?'没有匹配结果':'电影库为空'}</div><div class="empty-hint">${q?'换个关键词试试':'点击右上角 <b>＋</b> 添加电影'}</div></div>`;
+    return;
+  }
+  el.innerHTML=fil.map(m=>{
+    const init=(m.title||'?')[0].toUpperCase();
+    const hasE=!!m.enSrt,hasC=!!m.cnSrt,ready=hasE&&hasC;
+    const ec=hasE?parseSRT(m.enSrt).length:0,cc=hasC?parseSRT(m.cnSrt).length:0;
+    return`<div class="movie-card">
+      <div class="card-main" onclick="playMovie('${m.id}')">
+        <div class="card-poster"><span class="card-poster-letter">${init}</span></div>
+        <div class="card-info">
+          <div class="card-title">${esc(m.title)}</div>
+          <div class="card-pills">
+            <span class="pill ${hasE?'pill-en':'pill-missing'}">${hasE?'EN ✓':'EN —'}</span>
+            <span class="pill ${hasC?'pill-cn':'pill-missing'}">${hasC?'CN ✓':'CN —'}</span>
+            ${ready?'<span class="pill pill-ok">READY</span>':''}
+          </div>
+          <div class="card-sub-count">${ec?ec+' EN · ':''}${cc?cc+' CN':''}</div>
+        </div>
+        <div class="card-play-btn ${ready?'':'incomplete'}">${ready?'▶':'⚠'}</div>
+      </div>
+      <div class="card-actions">
+        <div class="card-action-btn card-action-edit" onclick="editMovie('${m.id}')">✏️ 编辑</div>
+        <div class="card-action-btn card-action-del" onclick="confirmDelete('${m.id}','${esc(m.title)}')">🗑 删除</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Add/Edit ──
+let editingId=null,formEnRaw=null,formCnRaw=null;
+function goAddMovie(){editingId=null;formEnRaw=null;formCnRaw=null;document.getElementById('form-title').textContent='添加新电影';document.getElementById('movie-title-input').value='';resetPick('en');resetPick('cn');checkFormReady();showScreen('addmovie');}
+function editMovie(id){library=loadLib();const m=library.find(x=>x.id===id);if(!m)return;editingId=id;formEnRaw=null;formCnRaw=null;document.getElementById('form-title').textContent='编辑字幕文件';document.getElementById('movie-title-input').value=m.title;if(m.enSrt)setPick('en','已有字幕 ('+parseSRT(m.enSrt).length+' 条)','重新选择可替换');else resetPick('en');if(m.cnSrt)setPick('cn','已有字幕 ('+parseSRT(m.cnSrt).length+' 条)','重新选择可替换');else resetPick('cn');checkFormReady();showScreen('addmovie');}
+function resetPick(l){document.getElementById(l+'-pick').classList.remove('has-file');document.getElementById(l+'-pick-name').textContent='点击选择 .srt 文件';document.getElementById(l+'-pick-meta').textContent=l==='en'?'用于声音识别 + 手动定位':'GBK / UTF-8 自动识别';document.getElementById(l+'-file-input').value='';}
+function setPick(l,name,meta){document.getElementById(l+'-pick').classList.add('has-file');document.getElementById(l+'-pick-name').textContent=name;if(meta)document.getElementById(l+'-pick-meta').textContent=meta;}
+document.getElementById('en-file-input').addEventListener('change',async function(){const f=this.files[0];if(!f)return;const raw=await readTxt(f,'UTF-8');const n=parseSRT(raw).length;if(!n){showToast('⚠️ EN SRT 解析失败');return;}formEnRaw=raw;setPick('en',f.name,n+' 条字幕');checkFormReady();});
+document.getElementById('cn-file-input').addEventListener('change',async function(){const f=this.files[0];if(!f)return;const raw=await readSRT(f);const n=parseSRT(raw).length;if(!n){showToast('⚠️ CN SRT 解析失败');return;}formCnRaw=raw;setPick('cn',f.name,n+' 条字幕');checkFormReady();});
+function checkFormReady(){library=loadLib();const title=document.getElementById('movie-title-input').value.trim();const ex=editingId?library.find(x=>x.id===editingId):null;const ok=!!(title&&(formEnRaw||(ex&&ex.enSrt))&&(formCnRaw||(ex&&ex.cnSrt)));const btn=document.getElementById('save-btn');btn.disabled=!ok;btn.classList.toggle('ready',ok);}
+function saveMovie(){const title=document.getElementById('movie-title-input').value.trim();if(!title)return;library=loadLib();if(editingId){const idx=library.findIndex(x=>x.id===editingId);if(idx>-1){library[idx].title=title;if(formEnRaw)library[idx].enSrt=formEnRaw;if(formCnRaw)library[idx].cnSrt=formCnRaw;}}else{library.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),title,enSrt:formEnRaw,cnSrt:formCnRaw,addedAt:Date.now()});}saveLib(library);showToast(editingId?'✅ 已更新':'✅ 已添加');goLibrary();}
+
+// ── Delete ──
+let pendingDelId=null;
+function confirmDelete(id,title){pendingDelId=id;document.getElementById('confirm-desc').textContent=`确定要删除《${title}》吗？`;document.getElementById('confirm-overlay').classList.add('show');document.getElementById('confirm-ok-btn').onclick=()=>{library=loadLib();library=library.filter(m=>m.id!==pendingDelId);saveLib(library);closeConfirm();renderLibrary();showToast('已删除');};}
+function closeConfirm(){document.getElementById('confirm-overlay').classList.remove('show');}
+
+// ── Player state ──
+let enSubs=[],cnSubs=[],movieStartWall=null,offsetMs=0,sttBuffer='',syncStatus='unsynced';
+let lastSyncWall=0,recognition=null,recActive=false,subInterval=null,wakeLock=null;
+let fontIdx=1,lastCnId=-1;
+const fontSizes=['font-s','font-m','font-l','font-xl'];
+const fontLabels=['小','中','大','特大'];
+let bestCandidate=null;
+let isMatching=false;         // user-controlled on/off
+let matchLog=[];              // full history of match attempts
+let matchAttemptCount=0;      // increments each tryMatchIfReady call
+let batchStartWall=null;      // wall-clock ms when first word of current batch arrived
+let interimBuffer='';         // latest interim (unconfirmed) STT text
+let batchTimeoutTimer=null;   // 15s forced-match timer
+
+async function playMovie(id){
+  library=loadLib();const m=library.find(x=>x.id===id);
+  if(!m||!m.enSrt||!m.cnSrt){showToast('⚠️ 字幕不完整');return;}
+  enSubs=parseSRT(m.enSrt);cnSubs=parseSRT(m.cnSrt);
+  if(!enSubs.length||!cnSubs.length){showToast('⚠️ 字幕解析失败');return;}
+  idfTable=buildIDF(enSubs);
+  invertedIndex=buildInvertedIndex(enSubs);
+  // Reset
+  movieStartWall=null;offsetMs=0;sttBuffer='';lastCnId=-1;fontIdx=1;bestCandidate=null;
+  isMatching=false;matchLog=[];matchAttemptCount=0;
+  batchStartWall=null;interimBuffer='';clearTimeout(batchTimeoutTimer);
+  setStatus('unsynced');
+  document.getElementById('offset-val').textContent='0.0 s';
+  document.getElementById('font-size-label').textContent='中';
+  document.getElementById('cn-sub').textContent='等待定位...';
+  document.getElementById('cn-sub').classList.add('blank');
+  document.getElementById('en-sub').textContent='　';
+  document.getElementById('movie-clock').textContent='--:--:--';
+  document.getElementById('conf-badge').textContent='——';
+  document.getElementById('conf-badge').className='conf-badge';
+  document.getElementById('stt-line1').textContent='待机 · 点击「声音匹配」开始';
+  document.getElementById('stt-line1').className='stt-line1';
+  document.getElementById('stt-line2').textContent='——';
+  document.getElementById('stt-line2').className='stt-line2';
+  document.getElementById('log-preview').textContent='暂无记录';
+  document.getElementById('log-preview').className='log-preview';
+  setMatchBtn(false);
+  const pl=document.getElementById('player');fontSizes.forEach(f=>pl.classList.remove(f));pl.classList.add('font-m');
+  showScreen('player');
+  try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(_){}
+  document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&!wakeLock)try{wakeLock=await navigator.wakeLock.request('screen');}catch(_){}});
+  subInterval=setInterval(tickDisplay,80);
+  // ← NO initRec() here — user must press 声音匹配 to start
+}
+function exitPlayer(){cleanup();exitFullscreen();showScreen('library');renderLibrary();}
+function cleanup(){
+  isMatching=false;recActive=false;
+  clearTimeout(recRestartTimer);clearTimeout(batchTimeoutTimer);
+  if(recognition){try{recognition.abort();}catch(_){}}recognition=null;
+  if(subInterval)clearInterval(subInterval);
+  if(wakeLock)try{wakeLock.release();}catch(_){}finally{wakeLock=null;}
+  closeManualSync();closeLogPanel();
+}
+
+// ─────────────────────────────────────────
+// SPEECH RECOGNITION
+// ─────────────────────────────────────────
+let recRestartTimer=null;
+let recStartAttempts=0;
+
+function setMatchBtn(on){
+  const btn=document.getElementById('match-btn');
+  if(on){
+    btn.className='btn btn-listening';
+    btn.innerHTML='<span class="btn-icon">🔴</span><span class="btn-label">停止匹配</span>';
+  }else{
+    btn.className='btn';
+    btn.innerHTML='<span class="btn-icon">🎙</span><span class="btn-label">声音匹配</span>';
+  }
+}
+
+// User presses "声音匹配" to toggle
+function toggleMatching(){
+  if(isMatching){
+    // Turn OFF
+    isMatching=false;
+    stopRec();
+    setMatchBtn(false);
+    setSttLine1('已停止 · 点击「声音匹配」重新开始','');
+    setSttLine2('——','');
+    if(syncStatus==='syncing') setStatus('unsynced');
+  }else{
+    // Turn ON
+    isMatching=true;
+    sttBuffer='';
+    setStatus('syncing');
+    setMatchBtn(true);
+    setSttLine1('正在收音...','live');
+    setSttLine2('等待识别结果','progress');
+    initRec();
+  }
+}
+
+function initRec(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('浏览器不支持语音识别！\n请使用 Android Chrome（需联网）');isMatching=false;setMatchBtn(false);return;}
+  startRec(SR);
+}
+
+function stopRec(){
+  recActive=false;
+  clearTimeout(recRestartTimer);
+  if(recognition){try{recognition.abort();}catch(_){}}
+  document.getElementById('stt-mic').classList.remove('active');
+}
+
+function startRec(SR){
+  recActive=true;
+  if(recognition){try{recognition.abort();}catch(_){}}
+  const SRc=SR||window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SRc();
+  recognition.lang='en-US';
+  recognition.continuous=false;
+  recognition.interimResults=true;
+  recognition.maxAlternatives=1;
+
+  recognition.onstart=()=>{
+    recStartAttempts=0;
+    document.getElementById('stt-mic').classList.add('active');
+  };
+  recognition.onend=()=>{
+    document.getElementById('stt-mic').classList.remove('active');
+    if(!recActive||!isMatching) return;
+    clearTimeout(recRestartTimer);
+    recRestartTimer=setTimeout(()=>{
+      if(!recActive||!isMatching) return;
+      try{startRec();}catch(e){
+        recStartAttempts++;
+        recRestartTimer=setTimeout(()=>startRec(), Math.min(recStartAttempts*500,3000));
+      }
+    },150);
+  };
+  recognition.onerror=(e)=>{
+    document.getElementById('stt-mic').classList.remove('active');
+    if(e.error==='no-speech'||e.error==='aborted'||e.error==='interrupted') return;
+    if(e.error==='not-allowed'){showToast('⚠️ 麦克风权限被拒绝');isMatching=false;recActive=false;setMatchBtn(false);return;}
+    setSttLine1('识别错误('+e.error+') 重试中...','fail');
+  };
+  recognition.onresult=(e)=>{
+    if(!isMatching) return;
+    let fin='', itr='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) fin+=t+' ';
+      else itr+=t;
+    }
+    const anyText=(fin+itr).trim();
+
+    // 第一个词到达时打时间戳并启动8s计时器
+    if(anyText && batchStartWall===null){
+      batchStartWall=Date.now();
+      clearTimeout(batchTimeoutTimer);
+      batchTimeoutTimer=setTimeout(()=>{
+        if(!isMatching) return;
+        setSttLine2('8s超时 · 强制匹配...','progress');
+        tryMatchIfReady(true);
+      }, 8000);
+    }
+
+    // 显示实时文字
+    if(anyText) setSttLine1(anyText,'live');
+
+    // final累积到sttBuffer，interim单独存interimBuffer
+    if(fin.trim()){
+      sttBuffer+=fin;
+      updateMatchProgress();
+      tryMatchIfReady(false); // 只有final到达才触发匹配
+    }
+    interimBuffer=itr;
+  };
+  try{recognition.start();}catch(e){
+    recStartAttempts++;
+    clearTimeout(recRestartTimer);
+    recRestartTimer=setTimeout(()=>startRec(), 800);
+  }
+}
+
+// ─────────────────────────────────────────
+// MATCHING ENGINE  (投票法 + IDF过滤)
+// ─────────────────────────────────────────
+const MIN_TOKENS     = 6;    // 有效词门槛（过滤后）
+const HIT_THRESH     = 0.35; // 得票率阈值
+const UNIQUENESS_THRESH = 1.5; // 第一名/第二名票数比值
+const IDF_THRESH     = 1.0;  // 低于此值的词视为高频无效词
+
+let idfTable      = {};
+let invertedIndex = {}; // word → [{subIdx, startMs}]
+
+function buildIDF(subs){
+  const N=subs.length, df={};
+  for(const s of subs){
+    const words=new Set(tokenize(s.text));
+    for(const w of words) df[w]=(df[w]||0)+1;
+  }
+  const table={};
+  for(const w in df) table[w]=Math.log(N/df[w]);
+  return table;
+}
+
+function buildInvertedIndex(subs){
+  const idx={};
+  for(let i=0;i<subs.length;i++){
+    const words=new Set(tokenize(subs[i].text));
+    for(const w of words){
+      if(!isValidToken(w)) continue; // 只索引有效词
+      if(!idx[w]) idx[w]=[];
+      idx[w].push({subIdx:i, startMs:subs[i].startMs});
+    }
+  }
+  return idx;
+}
+
+function tokenize(t){
+  return t.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>=2);
+}
+
+// 有效词：IDF >= 阈值（过滤高频词，无需手工黑名单）
+function isValidToken(w){
+  return (idfTable[w]||0) >= IDF_THRESH;
+}
+
+// 从文本中提取有效词（去重，避免重复识别影响投票）
+function getValidTokens(text){
+  return [...new Set(tokenize(text))].filter(isValidToken);
+}
+
+function setSttLine1(text,cls){
+  const el=document.getElementById('stt-line1');
+  el.textContent=text; el.className='stt-line1'+(cls?' '+cls:'');
+}
+function setSttLine2(text,cls){
+  const el=document.getElementById('stt-line2');
+  el.textContent=text; el.className='stt-line2'+(cls?' '+cls:'');
+}
+
+function updateMatchProgress(){
+  if(!isMatching) return;
+  const n=getValidTokens(sttBuffer+' '+interimBuffer).length;
+  if(n>0) setSttLine2(`第${matchAttemptCount+1}次 · 有效词 ${n}/${MIN_TOKENS}`, n>=MIN_TOKENS?'match-ok':'progress');
+}
+
+// ── 投票法核心（按字幕粒度）──
+// 每个有效词按IDF权重给它出现的每条字幕投票
+// 找总票数最高的字幕
+// uniqueness判断：若第一名和第二名时间相近（<60s），视为连续区间直接接受
+// 只有第二名跳到电影另一处，才用票数比值卡唯一性
+function findBestVoting(text){
+  if(!text||!enSubs.length) return null;
+  const toks=getValidTokens(text);
+  if(toks.length===0) return null;
+
+  // 按字幕投票：subIdx → 累计票数
+  const votes={};
+  for(const w of toks){
+    const positions=invertedIndex[w]||[];
+    const wt=idfTable[w]||0;
+    for(const {subIdx} of positions){
+      votes[subIdx]=(votes[subIdx]||0)+wt;
+    }
+  }
+
+  // 找第一名和第二名（同时记录各自的subIdx）
+  let bestIdx=-1, bestVotes=0, secondIdx=-1, secondVotes=0;
+  for(const idx in votes){
+    const v=votes[idx], i=+idx;
+    if(v>bestVotes){ secondVotes=bestVotes; secondIdx=bestIdx; bestVotes=v; bestIdx=i; }
+    else if(v>secondVotes){ secondVotes=v; secondIdx=i; }
+  }
+  if(bestIdx<0||bestVotes===0) return null;
+
+  // 分母：所有识别词IDF权重之和
+  const totalWeight=toks.reduce((s,w)=>s+(idfTable[w]||0), 0);
+  const score=totalWeight>0 ? bestVotes/totalWeight : 0;
+
+  // uniqueness：第一名和第二名时间差 < 60s → 视为连续区间，uniqueness=999（直接通过）
+  //             否则用票数比值判断
+  let uniqueness=999;
+  if(secondIdx>=0 && secondVotes>0){
+    const timeDiff=Math.abs(enSubs[bestIdx].startMs - enSubs[secondIdx].startMs);
+    if(timeDiff < 60000){
+      uniqueness=999; // 相邻字幕，连续区间，直接接受
+    }else{
+      uniqueness=bestVotes/secondVotes; // 跨位置竞争，才用比值卡
+    }
+  }
+
+  return{subtitle:enSubs[bestIdx], score, uniqueness};
+}
+
+function tryMatchIfReady(forced=false){
+  if(!isMatching) return;
+
+  const combined=(sttBuffer+' '+interimBuffer).trim();
+  const validToks=getValidTokens(combined);
+
+  // 有效词不足且非强制，等待
+  if(!forced && validToks.length<MIN_TOKENS) return;
+
+  // 强制触发但完全没词，重置继续
+  if(validToks.length===0){
+    resetBatch();
+    setSttLine1('正在收音...','live');
+    setSttLine2('没有识别到有效词，继续收听...','progress');
+    return;
+  }
+
+  matchAttemptCount++;
+  const attemptNum=matchAttemptCount;
+  const collectedText=combined.slice(0,120);
+  const r=findBestVoting(combined);
+  const pct=r?Math.round(r.score*100):0;
+  const uniq=r?r.uniqueness:0;
+  const uniqPct=r?(uniq===999?'∞':uniq.toFixed(1)):'—';
+  const success=r && r.score>=HIT_THRESH && r.uniqueness>=UNIQUENESS_THRESH;
+  const pos=r?msToMMSS(r.subtitle.startMs):'—';
+  const candidate=r?r.subtitle.text.slice(0,50):'—';
+  const ts=new Date().toLocaleTimeString('zh',{hour12:false});
+
+  matchLog.unshift({
+    num:attemptNum, ts, forced,
+    words:validToks.length, score:pct, uniq:uniqPct,
+    pos, candidate, text:collectedText, success
+  });
+  updateLogPreview();
+
+  const cb=document.getElementById('conf-badge');
+  cb.textContent=pct+'%';
+  cb.className='conf-badge '+(pct>=35?'high':pct>=20?'medium':'');
+
+  if(success){
+    const anchor=batchStartWall||Date.now();
+    movieStartWall=anchor-r.subtitle.startMs;
+    lastSyncWall=Date.now();
+    resetBatch();
+    setStatus('synced');
+    flashSync();
+    isMatching=false;
+    stopRec();
+    setMatchBtn(false);
+    setSttLine1(`✅ 第${attemptNum}次${forced?'(超时)':''}匹配成功 · ${pos}`,'success');
+    setSttLine2(`唯一性 ${uniqPct}x · 得分 ${pct}%`,'match-ok');
+    showToast('✅ 匹配成功');
+  }else{
+    const reason=(!r||r.score<HIT_THRESH)?`得分${pct}%不足`:`唯一性${uniqPct}x不足`;
+    resetBatch();
+    setSttLine1(`第${attemptNum}次失败(${reason}) · 继续收音...`,'fail');
+    setSttLine2(`候选: ${pos} · ${candidate}`,'match-fail');
+    setTimeout(()=>{
+      if(!isMatching) return;
+      setSttLine1('正在收音...','live');
+      setSttLine2(`第${matchAttemptCount+1}次 · 等待词语...`,'progress');
+    }, 2000);
+  }
+}
+
+// 重置当前批次，清空buffer和计时器
+function resetBatch(){
+  sttBuffer='';
+  interimBuffer='';
+  batchStartWall=null;
+  clearTimeout(batchTimeoutTimer);
+}
+
+function toggleMatching(){
+  if(isMatching){
+    isMatching=false;
+    stopRec();
+    resetBatch();
+    setMatchBtn(false);
+    setSttLine1('已停止 · 点击「声音匹配」重新开始','');
+    setSttLine2('——','');
+    if(syncStatus==='syncing') setStatus('unsynced');
+  }else{
+    isMatching=true;
+    resetBatch();
+    setStatus('syncing');
+    setMatchBtn(true);
+    setSttLine1('正在收音...','live');
+    setSttLine2('等待识别结果','progress');
+    initRec();
+  }
+}
+
+// ─────────────────────────────────────────
+// MANUAL SYNC
+// ─────────────────────────────────────────
+function openManualSync(){
+  document.getElementById('manual-search-input').value='';
+  renderManualList();
+  document.getElementById('manual-overlay').classList.add('show');
+}
+function closeManualSync(){document.getElementById('manual-overlay').classList.remove('show');}
+
+// Build paired list: enSubs and cnSubs aligned by time
+function renderManualList(){
+  const q=(document.getElementById('manual-search-input').value||'').toLowerCase();
+  const el=document.getElementById('manual-list');
+
+  // Determine current movie time for highlighting
+  const curMs=movieStartWall!==null?(Date.now()-movieStartWall)+offsetMs:-1;
+
+  // Find the cn text for a given en time
+  function getCN(startMs){
+    // find cn sub closest in time
+    let best=null,bd=Infinity;
+    for(const c of cnSubs){
+      const d=Math.abs(c.startMs-startMs);
+      if(d<bd){bd=d;best=c;}
+      if(c.startMs>startMs+3000) break;
+    }
+    return(best&&bd<3000)?best.text:'';
+  }
+
+  // Filter and limit
+  let items=enSubs;
+  if(q){
+    items=enSubs.filter(s=>s.text.toLowerCase().includes(q));
+  }
+
+  if(!items.length){
+    el.innerHTML='<div style="padding:30px;text-align:center;color:var(--dim);font-size:13px;">没有匹配的台词</div>';
+    return;
+  }
+
+  // Find current item index for auto-scroll
+  let curIdx=0;
+  if(curMs>0){
+    for(let i=0;i<items.length;i++){
+      if(items[i].startMs<=curMs) curIdx=i;
+      else break;
+    }
+  }
+
+  el.innerHTML=items.map((s,i)=>{
+    const cn=getCN(s.startMs);
+    const isNear=curMs>0&&Math.abs(s.startMs-curMs)<8000;
+    return`<div class="manual-item${isNear?' highlighted':''}" onclick="manualSyncTo(${s.startMs})">
+      <div class="manual-item-time">${msToMMSS(s.startMs)}</div>
+      <div style="flex:1">
+        <div class="manual-item-en">${esc(s.text)}</div>
+        ${cn?`<div class="manual-item-cn">${esc(cn)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Auto scroll to current position (when no search)
+  if(!q&&curMs>0){
+    setTimeout(()=>{
+      const highlighted=el.querySelector('.highlighted');
+      if(highlighted) highlighted.scrollIntoView({block:'center',behavior:'smooth'});
+    },100);
+  }
+}
+
+function manualSyncTo(startMs){
+  movieStartWall=Date.now()-startMs;
+  offsetMs=0;
+  document.getElementById('offset-val').textContent='0.0 s';
+  lastSyncWall=Date.now();
+  sttBuffer='';
+  // Stop recording if active
+  if(isMatching){isMatching=false;stopRec();resetBatch();setMatchBtn(false);}
+  setStatus('synced');
+  flashSync();
+  closeManualSync();
+  setSttLine1(`✅ 手动定位 · ${msToMMSS(startMs)}`,'success');
+  setSttLine2('点击「声音匹配」可重新自动匹配','');
+  showToast('✅ 手动定位成功');
+}
+
+// ─────────────────────────────────────────
+// DISPLAY TICK
+// ─────────────────────────────────────────
+function tickDisplay(){
+  if(movieStartWall===null) return;
+  const ms=(Date.now()-movieStartWall)+offsetMs;
+  document.getElementById('movie-clock').textContent=msToHMS(ms);
+  const cs=findAct(cnSubs,ms),es=findAct(enSubs,ms);
+  const ce=document.getElementById('cn-sub'),ac=document.getElementById('accent-line'),ee=document.getElementById('en-sub');
+  const nid=cs?cs.id:-1;
+  if(nid!==lastCnId){
+    lastCnId=nid;
+    if(cs){
+      ce.textContent=cs.text;
+      ce.classList.remove('blank');
+      ac.classList.remove('hidden');
+    }else{
+      ce.classList.add('blank');
+      ac.classList.add('hidden');
+    }
+    scaleCnSubtitle();
+  }
+  // EN always shown, update every tick in case it changed
+  if(es){ee.textContent=es.text;ee.classList.remove('blank');}
+  else{ee.classList.add('blank');}
+  if(syncStatus==='synced'&&(Date.now()-lastSyncWall)>180000) setStatus('lost');
+}function findAct(s,ms){for(const x of s){if(ms>=x.startMs&&ms<=x.endMs)return x;if(x.startMs>ms)break;}return null;}
+
+// ─────────────────────────────────────────
+// CONTROLS
+// ─────────────────────────────────────────
+function adjustOffset(d){offsetMs+=d;document.getElementById('offset-val').textContent=(offsetMs>=0?'+':'')+( offsetMs/1000).toFixed(1)+' s';}
+function cycleFontSize(){const pl=document.getElementById('player');pl.classList.remove(fontSizes[fontIdx]);fontIdx=(fontIdx+1)%4;pl.classList.add(fontSizes[fontIdx]);document.getElementById('font-size-label').textContent=fontLabels[fontIdx];}
+const STAT={unsynced:'未同步',syncing:'匹配中',synced:'已同步',lost:'信号丢失'};
+function setStatus(s){syncStatus=s;document.getElementById('sync-pill').className='sync-pill '+s;document.getElementById('sync-label').textContent=STAT[s]||s;}
+
+// ─────────────────────────────────────────
+// LOG PANEL
+// ─────────────────────────────────────────
+function updateLogPreview(){
+  const el=document.getElementById('log-preview');
+  const last=matchLog[0];
+  if(!last){el.textContent='暂无记录';el.className='log-preview';return;}
+  el.textContent=`#${last.num} ${last.ts} · ${last.success?'✅':'❌'} ${last.score}% · ${last.pos}`;
+  el.className='log-preview '+(last.success?'ok':'pending');
+  document.getElementById('log-hint').textContent=`共 ${matchLog.length} 次尝试`;
+}
+
+function openLogPanel(){
+  renderLogList();
+  document.getElementById('log-overlay').classList.add('show');
+}
+function closeLogPanel(){document.getElementById('log-overlay').classList.remove('show');}
+
+function renderLogList(){
+  document.getElementById('log-hint').textContent=`共 ${matchLog.length} 次尝试`;
+  const el=document.getElementById('log-list');
+  if(!matchLog.length){el.innerHTML='<div class="log-empty">暂无匹配记录<br>点击「声音匹配」开始</div>';return;}
+  el.innerHTML=matchLog.map(e=>`
+    <div class="log-item">
+      <div class="log-item-header">
+        <span class="log-item-num">#${e.num}${e.forced?' ⏱':''}</span>
+        <span class="log-item-result ${e.success?'ok':'fail'}">${e.success?'✅ 成功':'❌ 失败'}</span>
+        <span class="log-item-time">${e.ts}</span>
+      </div>
+      <div class="log-item-detail">
+        词数: <b>${e.words}</b> · 得分: <span class="${e.score>=50?'score-ok':'score-fail'}">${e.score}%</span> · 唯一性: <b>${e.uniq}x</b> · 定位: <b>${e.pos}</b><br>
+        候选: ${esc(e.candidate)}<br>
+        原文: <span style="opacity:0.6">${esc(e.text.slice(0,80))}${e.text.length>80?'...':''}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────
+// OVERLAY / TOAST  (sync overlay removed)
+// ─────────────────────────────────────────
+function flashSync(){const e=document.getElementById('sync-flash');e.classList.add('show');setTimeout(()=>e.classList.remove('show'),400);}
+let toastT=null;
+function showToast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2500);}
+
+// ─────────────────────────────────────────
+// FULLSCREEN + LOCK
+// ─────────────────────────────────────────
+let fsLocked=false;
+const FS_MAX_FONT=52, FS_MIN_FONT=16;
+// Offscreen canvas for reliable text measurement (no DOM layout dependency)
+const _measureCanvas=document.createElement('canvas');
+const _measureCtx=_measureCanvas.getContext('2d');
+
+function measureTextWidth(text, sizePx){
+  _measureCtx.font=`700 ${sizePx}px 'Noto Sans SC', sans-serif`;
+  return _measureCtx.measureText(text).width;
+}
+
+function scaleCnSubtitle(){
+  const pl=document.getElementById('player');
+  if(!pl.classList.contains('fs-mode')) return;
+  const el=document.getElementById('cn-sub');
+  if(!el.textContent||el.classList.contains('blank')) return;
+  // Use window.innerWidth as available width (reliable in fullscreen)
+  const availW=window.innerWidth-40; // 40px total horizontal padding
+  const text=el.textContent;
+  let size=FS_MAX_FONT;
+  while(size>FS_MIN_FONT && measureTextWidth(text,size)>availW){
+    size-=1;
+  }
+  el.style.fontSize=size+'px';
+}
+
+function enterFullscreen(){
+  const pl=document.getElementById('player');
+  pl.classList.add('fs-mode');
+  document.getElementById('lock-btn').classList.add('show');
+  document.getElementById('fs-btn-icon').textContent='⛶';
+  fsLocked=false;
+  document.getElementById('lock-btn').textContent='🔓';
+  // scaleCnSubtitle() called AFTER fullscreenchange fires, not here
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen;
+  if(req){
+    req.call(el).then(()=>{
+      // Wait 500ms for fullscreen + orientation to finish rendering
+      setTimeout(scaleCnSubtitle, 500);
+      if(screen.orientation&&screen.orientation.lock){
+        screen.orientation.lock('landscape').catch(()=>{
+          showToast('⚠️ 横屏失败，请手动旋转');
+        });
+      }
+    }).catch(()=>showToast('⚠️ 全屏请求失败'));
+  }else{
+    showToast('⚠️ 浏览器不支持全屏API');
+  }
+}
+
+function exitFullscreen(){
+  const pl=document.getElementById('player');
+  pl.classList.remove('fs-mode','locked');
+  document.getElementById('lock-btn').classList.remove('show');
+  fsLocked=false;
+  // Reset CN subtitle font
+  document.getElementById('cn-sub').style.fontSize='';
+  // Exit native fullscreen
+  const exit=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen;
+  if(exit&&(document.fullscreenElement||document.webkitFullscreenElement)){
+    exit.call(document).catch(()=>{});
+  }
+  if(screen.orientation&&screen.orientation.unlock){
+    try{screen.orientation.unlock();}catch(_){}
+  }
+}
+
+function toggleFullscreen(){
+  const pl=document.getElementById('player');
+  if(pl.classList.contains('fs-mode')) exitFullscreen();
+  else enterFullscreen();
+}
+
+function toggleLock(){
+  const pl=document.getElementById('player');
+  const btn=document.getElementById('lock-btn');
+  if(!fsLocked){
+    pl.classList.add('locked');
+    btn.textContent='🔒';
+    fsLocked=true;
+  }else{
+    pl.classList.remove('locked');
+    btn.textContent='🔓';
+    fsLocked=false;
+  }
+}
+
+// Exit fullscreen when browser native fullscreen ends (e.g. back button)
+function onFsEnd(){
+  const pl=document.getElementById('player');
+  if(pl.classList.contains('fs-mode')){
+    pl.classList.remove('fs-mode','locked');
+    document.getElementById('lock-btn').classList.remove('show');
+    document.getElementById('cn-sub').style.fontSize='';
+    fsLocked=false;
+  }
+}
+function onFsEnter(){
+  // scaleCnSubtitle called via setTimeout in enterFullscreen's .then()
+}
+document.addEventListener('fullscreenchange',()=>{
+  if(document.fullscreenElement||document.webkitFullscreenElement) onFsEnter();
+  else onFsEnd();
+});
+document.addEventListener('webkitfullscreenchange',()=>{
+  if(document.fullscreenElement||document.webkitFullscreenElement) onFsEnter();
+  else onFsEnd();
+});
+// Re-scale after orientation change (portrait↔landscape)
+window.addEventListener('orientationchange',()=>{
+  setTimeout(scaleCnSubtitle, 500);
+});
+
+renderLibrary();
+</script>
+</body>
+</html>
